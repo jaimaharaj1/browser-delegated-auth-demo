@@ -1,0 +1,460 @@
+@page
+@model browser_delegated_auth_demo.Pages.BuildInfoModel
+@{
+    ViewData["Title"] = "Build Info";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="bi bi-info-circle"></i> Build Information
+    </h1>
+    <p class="lead">Documentation of how this browser-delegated authentication demo was built using Entra External ID.</p>
+
+    <!-- Overview -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="bi bi-app"></i> Application Overview</h3>
+        </div>
+        <div class="card-body">
+            <h5>Technology Stack</h5>
+            <ul>
+                <li><strong>Framework:</strong> ASP.NET Core 10.0 (Razor Pages)</li>
+                <li><strong>Authentication:</strong> Microsoft.Identity.Web 3.3.0</li>
+                <li><strong>Graph SDK:</strong> Microsoft.Graph 5.56.0</li>
+                <li><strong>Identity Provider:</strong> Microsoft Entra External ID (CIAM)</li>
+                <li><strong>Session State:</strong> DistributedMemoryCache</li>
+            </ul>
+            
+            <h5 class="mt-3">Key Features</h5>
+            <ul>
+                <li>Browser-delegated authentication with OpenID Connect</li>
+                <li>Step-up authentication using Conditional Access Authentication Context</li>
+                <li>Microsoft Graph API integration for user profiles</li>
+                <li>Role-based access control</li>
+                <li>Comprehensive token display and debugging</li>
+                <li>Session management for authentication flows</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Basic Authentication Setup -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0"><i class="bi bi-shield-check"></i> Basic Authentication Setup</h3>
+        </div>
+        <div class="card-body">
+            <h5>Entra External ID Configuration</h5>
+            
+            <div class="alert alert-info">
+                <strong>Tenant:</strong> jaimlab1eeid.onmicrosoft.com<br>
+                <strong>Endpoint:</strong> https://jaimlab1eeid.ciamlogin.com/<br>
+                <strong>Client ID:</strong> 23424267-d4c8-413b-98dc-ff96ba21cbcc
+            </div>
+
+            <h6 class="mt-3">App Registration Settings</h6>
+            <ul>
+                <li><strong>Redirect URIs:</strong>
+                    <ul>
+                        <li>https://localhost:7234/signin-oidc</li>
+                        <li>https://localhost:5234/signin-oidc</li>
+                    </ul>
+                </li>
+                <li><strong>Logout URL:</strong> https://localhost:7234/signout-oidc</li>
+                <li><strong>ID Tokens:</strong> Enabled</li>
+                <li><strong>API Permissions:</strong>
+                    <ul>
+                        <li>Microsoft Graph: User.Read (Delegated)</li>
+                        <li>Microsoft Graph: offline_access (Delegated)</li>
+                        <li>Microsoft Graph: openid (Delegated)</li>
+                        <li>Microsoft Graph: profile (Delegated)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h6 class="mt-3">Web App Configuration (appsettings.json)</h6>
+            <pre class="bg-light p-3 rounded"><code>"AzureAd": {
+  "Instance": "https://jaimlab1eeid.ciamlogin.com/",
+  "Domain": "jaimlab1eeid.onmicrosoft.com",
+  "TenantId": "your-tenant-id",
+  "ClientId": "23424267-d4c8-413b-98dc-ff96ba21cbcc",
+  "CallbackPath": "/signin-oidc",
+  "SignedOutCallbackPath": "/signout-oidc"
+}</code></pre>
+
+            <h6 class="mt-3">Program.cs Configuration</h6>
+            <pre class="bg-light p-3 rounded"><code>builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))
+    .EnableTokenAcquisitionToCallDownstreamApi()
+    .AddMicrosoftGraph(builder.Configuration.GetSection("MicrosoftGraph"))
+    .AddInMemoryTokenCaches();</code></pre>
+        </div>
+    </div>
+
+    <!-- Step-Up Authentication with Authentication Context -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning">
+            <h3 class="mb-0"><i class="bi bi-shield-lock"></i> Step-Up Authentication with Authentication Context</h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <strong><i class="bi bi-exclamation-triangle"></i> Key Feature:</strong> This demonstrates using Conditional Access Authentication Context to enforce MFA for sensitive operations (Settings page) while keeping lower security for general app access.
+            </div>
+
+            <h5>1. Authentication Context Configuration in Entra External ID</h5>
+            
+            <h6>Step 1: Create Authentication Context</h6>
+            <p>Navigate to: <strong>Microsoft Entra admin center → Protection → Conditional Access → Authentication context</strong></p>
+            <ul>
+                <li><strong>ID:</strong> c1</li>
+                <li><strong>Display Name:</strong> BrowserDelegatedAuth-SettingsPageMFA</li>
+                <li><strong>Description:</strong> Require MFA for accessing Settings page in browser-delegated-auth-demo</li>
+                <li><strong>Published to apps:</strong> ✅ Yes</li>
+            </ul>
+
+            <div class="alert alert-info mt-3">
+                <strong>Note:</strong> Authentication Context IDs must be in the format C1-C99 (case-insensitive).
+            </div>
+
+            <h6 class="mt-4">Step 2: Create Conditional Access Policy</h6>
+            <p>Navigate to: <strong>Microsoft Entra admin center → Protection → Conditional Access → Policies</strong></p>
+            
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6>Policy Configuration: "BrowserDelegatedAuth-RequireMFAforSettings"</h6>
+                    <ul>
+                        <li><strong>Users:</strong> All users (or specific users/groups)</li>
+                        <li><strong>Target resources:</strong> Authentication context
+                            <ul>
+                                <li>Selected: c1 (BrowserDelegatedAuth-SettingsPageMFA)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Grant:</strong> Grant access
+                            <ul>
+                                <li>✅ Require multifactor authentication</li>
+                            </ul>
+                        </li>
+                        <li><strong>Enable policy:</strong> On</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h6 class="mt-4">Step 3: Configure MFA Methods</h6>
+            <p>Navigate to: <strong>Microsoft Entra admin center → Protection → Authentication methods → Policies</strong></p>
+            <ul>
+                <li><strong>Email OTP:</strong> Enabled for All users</li>
+                <li><strong>SMS:</strong> Available as add-on (optional)</li>
+            </ul>
+
+            <h5 class="mt-5">2. Web Application Implementation</h5>
+
+            <h6>Session State Configuration (Program.cs)</h6>
+            <pre class="bg-light p-3 rounded"><code>// Add session state for authentication flow management
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(10);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// CRITICAL: Session must be configured BEFORE authentication
+app.UseSession();
+app.UseAuthentication();
+app.UseAuthorization();</code></pre>
+
+            <h6 class="mt-4">Enhanced OpenID Connect Event Handler (Program.cs)</h6>
+            <pre class="bg-light p-3 rounded"><code>builder.Services.Configure&lt;OpenIdConnectOptions&gt;(
+    OpenIdConnectDefaults.AuthenticationScheme,
+    options =>
+    {
+        options.Events.OnRedirectToIdentityProvider = context =>
+        {
+            // Support for acr_values parameter
+            if (context.Properties.Items.TryGetValue("acr_values", out var acrValues))
+            {
+                context.ProtocolMessage.SetParameter("acr_values", acrValues);
+            }
+            return Task.CompletedTask;
+        };
+        
+        // Handle password reset correlation failures
+        options.Events.OnRemoteFailure = context =>
+        {
+            if (context.Failure?.Message?.Contains("Correlation failed") == true)
+            {
+                context.Response.Redirect("/");
+                context.HandleResponse();
+            }
+            return Task.CompletedTask;
+        };
+    });</code></pre>
+
+            <h6 class="mt-4">Settings Page Implementation (Settings.cshtml.cs)</h6>
+            <pre class="bg-light p-3 rounded"><code>public async Task&lt;IActionResult&gt; OnGetAsync()
+{
+    const string authContextClassReference = "c1";
+    
+    // Log all claims for debugging
+    foreach (var claim in User.Claims)
+    {
+        _logger.LogInformation($"Claim: {claim.Type} = {claim.Value}");
+    }
+    
+    // Check if user already has the required auth context
+    var acrsClaimWithC1 = User.Claims
+        .FirstOrDefault(c => c.Type == "acrs" && c.Value == authContextClassReference);
+    var acrClaimWithC1 = User.Claims
+        .FirstOrDefault(c => c.Type == "acr" && c.Value == authContextClassReference);
+    
+    if (acrsClaimWithC1 != null || acrClaimWithC1 != null)
+    {
+        _logger.LogInformation("✅ User already satisfied auth context '{AuthContext}'", 
+            authContextClassReference);
+        return Page();
+    }
+    
+    _logger.LogWarning("⚠️ No acrs or acr claim with value '{AuthContext}' found", 
+        authContextClassReference);
+    
+    // Check if we already attempted step-up
+    var attemptedStepUp = HttpContext.Session.GetString("StepUpAttempted");
+    
+    if (attemptedStepUp == "true")
+    {
+        _logger.LogError("❌ Step-up auth failed - MFA not completed");
+        HttpContext.Session.Remove("StepUpAttempted");
+        return RedirectToPage("/AccessDenied", new { 
+            reason = "MFA authentication failed or auth context not satisfied" 
+        });
+    }
+    
+    // Trigger step-up authentication
+    _logger.LogInformation("🔐 Triggering step-up authentication for context '{AuthContext}'", 
+        authContextClassReference);
+    
+    HttpContext.Session.SetString("StepUpAttempted", "true");
+    
+    var properties = new AuthenticationProperties
+    {
+        RedirectUri = "/Settings"
+    };
+    
+    // Add both claims challenge and acr_values
+    properties.Items["claims"] = $"{{\"id_token\":{{\"acr\":{{\"essential\":true,\"values\":[\"{authContextClassReference}\"]}}}}}}";
+    properties.Items["acr_values"] = authContextClassReference;
+    
+    return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+}</code></pre>
+
+            <h6 class="mt-4">Key Implementation Details</h6>
+            <ul>
+                <li><strong>Check Before Challenge:</strong> First check if the token already has <code>acrs</code> or <code>acr</code> claim with value "c1"</li>
+                <li><strong>Only Challenge if Missing:</strong> Only trigger step-up if the required auth context is not present</li>
+                <li><strong>Session-Based Loop Prevention:</strong> Use session to track if step-up was already attempted</li>
+                <li><strong>Dual Parameter Approach:</strong> Send both <code>claims</code> parameter (JSON format) and <code>acr_values</code> parameter</li>
+                <li><strong>Graceful Failure:</strong> Redirect to AccessDenied page if MFA fails or auth context not satisfied</li>
+            </ul>
+
+            <h5 class="mt-5">3. Testing the Implementation</h5>
+            <ol>
+                <li><strong>Initial Sign-In:</strong> User signs in with basic authentication (email + password or email OTP)</li>
+                <li><strong>Access General Pages:</strong> User can access Dashboard, Profile, etc. without MFA</li>
+                <li><strong>Access Settings Page:</strong> Application checks for auth context "c1"
+                    <ul>
+                        <li>If not present: Triggers Challenge() to redirect to Entra ID</li>
+                        <li>Entra ID evaluates CA policy targeting auth context "c1"</li>
+                        <li>User prompted for MFA (Email OTP)</li>
+                        <li>Upon success: Token includes <code>acrs: ["c1"]</code> claim</li>
+                    </ul>
+                </li>
+                <li><strong>Subsequent Access:</strong> Settings page checks for "c1" in token, grants immediate access without re-prompting</li>
+            </ol>
+
+            <div class="alert alert-success mt-4">
+                <h6><i class="bi bi-check-circle"></i> Expected Token Claims After Step-Up</h6>
+                <ul class="mb-0">
+                    <li><code>acrs</code> claim with value <code>["c1"]</code></li>
+                    <li><code>amr</code> claim including <code>"mfa"</code></li>
+                    <li>Session remains elevated until token expires or user signs out</li>
+                </ul>
+            </div>
+
+            <h6 class="mt-4">Troubleshooting Tips</h6>
+            <ul>
+                <li><strong>Auth Context Not Enforcing:</strong> Ensure CA policy is enabled and targets the correct auth context</li>
+                <li><strong>Infinite Loop:</strong> Check session state is configured before authentication middleware</li>
+                <li><strong>No acrs Claim:</strong> Verify authentication context is published to apps in Entra admin center</li>
+                <li><strong>MFA Not Prompting:</strong> Confirm Email OTP or other MFA method is enabled for users</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Microsoft Graph Integration -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h3 class="mb-0"><i class="bi bi-graph-up"></i> Microsoft Graph Integration</h3>
+        </div>
+        <div class="card-body">
+            <h5>Profile Page Implementation</h5>
+            <p>The Profile page retrieves user information from Microsoft Graph API.</p>
+
+            <h6>Configuration (appsettings.json)</h6>
+            <pre class="bg-light p-3 rounded"><code>"MicrosoftGraph": {
+  "BaseUrl": "https://graph.microsoft.com/v1.0",
+  "Scopes": [ "user.read" ]
+}</code></pre>
+
+            <h6>Code Implementation (Profile.cshtml.cs)</h6>
+            <pre class="bg-light p-3 rounded"><code>private readonly GraphServiceClient _graphServiceClient;
+
+public async Task OnGetAsync()
+{
+    var user = await _graphServiceClient.Me.GetAsync();
+    
+    DisplayName = user?.DisplayName;
+    Email = user?.Mail ?? user?.UserPrincipalName;
+    JobTitle = user?.JobTitle;
+    Department = user?.Department;
+    MobilePhone = user?.MobilePhone;
+    OfficeLocation = user?.OfficeLocation;
+}</code></pre>
+
+            <h6>Retrieved Information</h6>
+            <ul>
+                <li>Display Name</li>
+                <li>Email Address</li>
+                <li>Job Title</li>
+                <li>Department</li>
+                <li>Mobile Phone</li>
+                <li>Office Location</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Token Display -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h3 class="mb-0"><i class="bi bi-key"></i> Token Display & Debugging</h3>
+        </div>
+        <div class="card-body">
+            <h5>Dashboard Implementation</h5>
+            <p>The Dashboard page displays all claims from the ID token with special formatting for JSON arrays.</p>
+
+            <h6>Features</h6>
+            <ul>
+                <li><strong>All Claims Display:</strong> Shows every claim in the user's token</li>
+                <li><strong>JSON Array Parsing:</strong> Special handling for claims like <code>amr</code> (authentication methods reference)</li>
+                <li><strong>Color-Coded Badges:</strong> Visual indicators for important claims</li>
+                <li><strong>Auth Context Highlighting:</strong> Special badge for <code>acrs</code> claim showing step-up status</li>
+            </ul>
+
+            <h6>AMR Claim Parsing</h6>
+            <pre class="bg-light p-3 rounded"><code>var amrClaim = User.FindFirst("amr");
+if (amrClaim != null)
+{
+    try
+    {
+        AuthMethods = JsonSerializer.Deserialize&lt;string[]&gt;(amrClaim.Value);
+    }
+    catch
+    {
+        AuthMethods = new[] { amrClaim.Value };
+    }
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Role-Based Access Control -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h3 class="mb-0"><i class="bi bi-people"></i> Role-Based Access Control</h3>
+        </div>
+        <div class="card-body">
+            <h5>Implementation</h5>
+            <p>The application includes role-based panels that display based on the user's roles claim.</p>
+
+            <h6>Pages with Role Checks</h6>
+            <ul>
+                <li><strong>AdminPanel:</strong> Requires "Admin" role in <code>roles</code> claim</li>
+                <li><strong>ManagerPanel:</strong> Requires "Manager" role in <code>roles</code> claim</li>
+                <li><strong>UserPanel:</strong> Accessible to all authenticated users</li>
+            </ul>
+
+            <h6>Page-Level Authorization</h6>
+            <pre class="bg-light p-3 rounded"><code>[Authorize(Roles = "Admin")]
+public class AdminPanelModel : PageModel
+{
+    // Admin-only content
+}</code></pre>
+
+            <h6>Assigning Roles in Entra External ID</h6>
+            <ol>
+                <li>Create App Roles in App Registration → App roles</li>
+                <li>Assign users to roles in Enterprise Applications</li>
+                <li>Roles appear in <code>roles</code> claim in token</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Error Handling -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h3 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Error Handling</h3>
+        </div>
+        <div class="card-body">
+            <h5>Implemented Error Scenarios</h5>
+
+            <h6>1. Password Reset During Sign-In (Correlation Failed)</h6>
+            <pre class="bg-light p-3 rounded"><code>options.Events.OnRemoteFailure = context =>
+{
+    if (context.Failure?.Message?.Contains("Correlation failed") == true)
+    {
+        context.Response.Redirect("/");
+        context.HandleResponse();
+    }
+    return Task.CompletedTask;
+};</code></pre>
+
+            <h6>2. Access Denied Page</h6>
+            <p>Shows when:</p>
+            <ul>
+                <li>User lacks required role for a page</li>
+                <li>MFA authentication fails during step-up</li>
+                <li>Auth context requirement not satisfied</li>
+            </ul>
+
+            <h6>3. General Error Page</h6>
+            <p>Handles unexpected exceptions with Activity ID for tracking.</p>
+        </div>
+    </div>
+
+    <!-- Additional Resources -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="bi bi-book"></i> Additional Resources</h3>
+        </div>
+        <div class="card-body">
+            <h5>Microsoft Documentation</h5>
+            <ul>
+                <li><a href="https://learn.microsoft.com/en-us/entra/external-id/customers/overview-customers-ciam" target="_blank">Microsoft Entra External ID Overview</a></li>
+                <li><a href="https://learn.microsoft.com/en-us/entra/identity-platform/developer-guide-conditional-access-authentication-context" target="_blank">Developer Guide to Conditional Access Authentication Context</a></li>
+                <li><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-cloud-apps#authentication-context" target="_blank">Authentication Context in Conditional Access</a></li>
+                <li><a href="https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity" target="_blank">Introduction to Identity on ASP.NET Core</a></li>
+                <li><a href="https://github.com/AzureAD/microsoft-identity-web/wiki" target="_blank">Microsoft.Identity.Web Wiki</a></li>
+            </ul>
+
+            <h5 class="mt-3">Code Samples Referenced</h5>
+            <ul>
+                <li><a href="https://github.com/Azure-Samples/ms-identity-dotnetcore-ca-auth-context-app" target="_blank">Authentication Context Step-Up for Web Apps</a> (Archived)</li>
+                <li><a href="https://github.com/Azure-Samples/ms-identity-ca-auth-context" target="_blank">Authentication Context for Web APIs</a> (Archived)</li>
+            </ul>
+
+            <h5 class="mt-3">NuGet Packages</h5>
+            <ul>
+                <li><strong>Microsoft.Identity.Web:</strong> 3.3.0</li>
+                <li><strong>Microsoft.Graph:</strong> 5.56.0</li>
+                <li><strong>Microsoft.Identity.Web.GraphServiceClient:</strong> 3.3.0</li>
+            </ul>
+        </div>
+    </div>
+</div>

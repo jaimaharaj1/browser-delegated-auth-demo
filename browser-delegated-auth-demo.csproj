@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BrowserDelegatedAuthDemo</RootNamespace>
+    <UserSecretsId>browser-delegated-auth-demo-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Identity.Web.GraphServiceClient" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Graph" Version="5.56.0" />
+  </ItemGroup>
+
+</Project>
